@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Login to GitLab') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'fms-key', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+                    // Windows PowerShell login
+                    powershell 'docker login registry.gitlab.com -u $env:GIT_USER -p $env:GIT_PASS'
+                }
+            }
+        }
+
+        stage('Run My App') {
+            steps {
+                script {
+                    // 1. Cleanup Old Frontend Container
+                    // "exit 0" dewa hoyeche jate container na thakle error na dey
+                    powershell 'docker stop frontend; exit 0'
+                    powershell 'docker rm frontend; exit 0'
+                    
+                    // 2. Cleanup Old Backend Container
+                    powershell 'docker stop backend; exit 0'
+                    powershell 'docker rm backend; exit 0'
+                    
+                    // 3. Run Frontend (Port 3000)
+                    powershell 'docker run -d -p 3000:3000 --name frontend registry.gitlab.com/fahim4545/file-management-system/frontend:f'
+                    
+                    // 4. Run Backend (Port 5000)
+                    powershell 'docker run -d -p 5000:5000 --name backend registry.gitlab.com/fahim4545/file-management-system/backend:b'
+                }
+            }
+        }
+    }
+}
